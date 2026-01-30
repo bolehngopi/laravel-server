@@ -12,9 +12,8 @@ class EncryptResponse
         $response = $next($request);
 
         if ($response->getContent()) {
-            return response()->json([
-                'payload' => Crypt::encryptString($response->getContent())
-            ]);
+            // Return encrypted string directly as JSON value
+            return response()->json(Crypt::encryptString($response->getContent()));
         }
 
         return $response;

@@ -17,21 +17,36 @@ class DecryptRequest
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->filled('payload')) {
+        // Get the raw JSON body content (encrypted string)
+        $content = $request->getContent();
 
-            $json = Crypt::decryptString($request->get('payload'));
+        if (!empty($content)) {
+            // Remove surrounding quotes if the encrypted string is JSON-encoded
+            $encryptedString = json_decode($content);
 
-            $data = json_decode($json, true);
-
-            if (!is_array($data)) {
-                return response()->json([
-                    'message' => 'Invalid decrypted payload'
-                ], 400);
+            // If json_decode returns null or non-string, try using content directly
+            if (!is_string($encryptedString)) {
+                $encryptedString = $content;
             }
 
-            // Merge and remove the payload from the request
-            $request->merge($data);
-            $request->request->remove('payload');
+            try {
+                $json = Crypt::decryptString($encryptedString);
+                $data = json_decode($json, true);
+
+                if (!is_array($data)) {
+                    return response()->json([
+                        'message' => 'Invalid decrypted payload'
+                    ], 400);
+                }
+
+                // Replace request data with decrypted data
+                $request->replace($data);
+            } catch (\Exception $e) {
+                Log::error('Decryption failed: ' . $e->getMessage());
+                return response()->json([
+                    'message' => 'Failed to decrypt request'
+                ], 400);
+            }
         }
 
         return $next($request);

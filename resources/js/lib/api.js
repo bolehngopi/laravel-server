@@ -7,17 +7,17 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
     if (config.data) {
-        config.data = {
-            payload: encrypt(config.data),
-        };
+        // Send encrypted string directly as JSON value
+        config.data = encrypt(config.data);
     }
     console.log('Encrypted payload:', config)
     return config;
 });
 
 api.interceptors.response.use((response) => {
-    if (response.data?.payload) {
-        response.data = decrypt(response.data.payload);
+    // Response data is the encrypted string directly
+    if (response.data && typeof response.data === 'string') {
+        response.data = decrypt(response.data);
     }
     console.log('Decrypted response data:', response.data)
     return response;
