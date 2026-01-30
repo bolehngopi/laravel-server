@@ -53,8 +53,31 @@ class PostController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('Decrypted Request Data:');
-        return $request->all(); // sudah decrypted
-    }
+        try {
+            $client = new Client([
+                'base_uri' => 'https://dummyjson.com/',
+                'timeout' => 12,
+                'connect_timeout' => 5,
+            ]);
 
+            $response = $client->post('posts/add', [
+                'json' => [
+                    'title' => $request->input('title'),
+                    'body' => $request->input('body'),
+                    'userId' => $request->input('userId'),
+                    'tags' => $request->input('tags', []),
+                ],
+            ]);
+
+            $payload = json_decode($response->getBody()->getContents(), true);
+
+            return response()->json($payload, $response->getStatusCode());
+        } catch (\Throwable $exception) {
+            Log::error('Failed to create post: ' . $exception->getMessage());
+            return response()->json([
+                'message' => 'Failed to create post.',
+                'error' => $exception->getMessage(),
+            ], 500);
+        }
+    }
 }
